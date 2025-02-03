@@ -1,0 +1,84 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+local flying = false
+local flySpeed = 100  -- 增加飞行速度
+local bodyVelocity, bodyGyro
+
+-- 启动飞行
+local function startFlying()
+    if flying then return end
+    flying = true
+
+    -- 创建 BodyVelocity（推动角色移动）
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)  -- 初始速度设置为零
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Parent = humanoidRootPart
+
+    -- 创建 BodyGyro（保持角色方向稳定）
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.CFrame = humanoidRootPart.CFrame
+    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyGyro.Parent = humanoidRootPart
+end
+
+-- 停止飞行
+local function stopFlying()
+    if not flying then return end
+    flying = false
+
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+end
+
+-- 飞行时根据摄像机视角控制角色的移动
+RunService.RenderStepped:Connect(function()
+    if flying then
+        local camera = Workspace.CurrentCamera
+
+        -- 获取摄像机的前、右方向
+        local camLook = camera.CFrame.LookVector  -- 摄像机的前方
+        local camRight = camera.CFrame.RightVector  -- 摄像机的右方
+
+        -- 获取用户输入的移动方向（例如按下 W, A, S, D）
+        local moveDir = Vector3.new(0, 0, 0)
+
+        -- 处理前后、左右的输入（WASD）
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveDir = moveDir + camLook
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveDir = moveDir - camLook
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDir = moveDir - camRight
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveDir = moveDir + camRight
+        end
+
+        -- 给角色添加速度，根据方向调整
+        bodyVelocity.Velocity = moveDir * flySpeed  -- 根据输入方向飞行
+        bodyGyro.CFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + camLook)  -- 让角色朝向摄像机前方
+    end
+end)
+
+-- 使用V键来切换飞行
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.V then
+        if flying then
+            stopFlying()  -- 如果已经在飞行中，按V键停止飞行
+        else
+            startFlying()  -- 如果没有飞行，按V键启动飞行
+        end
+    end
+end)
