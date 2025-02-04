@@ -2,118 +2,81 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
 
 local flying = false
-local flySpeed = 100  -- 飞行速度
+local flySpeed = 100
 local bodyVelocity, bodyGyro
 
--- UI 元件
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "FlightControl"
+-- **修正：創建函數來處理角色變更**
+local function setupCharacter(newCharacter)
+    character = newCharacter
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
-local flyButton = Instance.new("TextButton")
-flyButton.Size = UDim2.new(0, 200, 0, 50)
-flyButton.Position = UDim2.new(1, -210, 0, 10)  -- 顯示在右上角
-flyButton.Text = "Start Flying"
-flyButton.Visible = false  -- 初始隱藏
-flyButton.Parent = screenGui
-
--- 判斷設備類型
-local isMobile = UserInputService.TouchEnabled
-
--- 顯示設備控制方式
-if isMobile then
-    -- 在手機上顯示按鈕
-    flyButton.Visible = true
-else
-    -- 在PC上，不顯示按鈕
-    flyButton.Visible = false
+    -- 重生後仍可飛行
+    flying = false
 end
 
--- 啟動飛行
+-- **監聽角色重生**
+player.CharacterAdded:Connect(setupCharacter)
+
+-- **啟動飛行**
 local function startFlying()
     if flying then return end
     flying = true
 
-    -- 創建 BodyVelocity（推動角色移動）
     bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.Velocity = Vector3.new(0, 0, 0)  -- 初始速度設為零
+    bodyVelocity.Velocity = Vector3.zero
     bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     bodyVelocity.Parent = humanoidRootPart
 
-    -- 創建 BodyGyro（保持角色方向穩定）
     bodyGyro = Instance.new("BodyGyro")
     bodyGyro.CFrame = humanoidRootPart.CFrame
     bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     bodyGyro.Parent = humanoidRootPart
 end
 
--- 停止飛行
+-- **停止飛行**
 local function stopFlying()
     if not flying then return end
     flying = false
-
     if bodyVelocity then bodyVelocity:Destroy() end
     if bodyGyro then bodyGyro:Destroy() end
 end
 
--- 在 PC 上使用 V 鍵切換飛行
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if not isMobile and input.KeyCode == Enum.KeyCode.V then
-        if flying then
-            stopFlying()  -- 如果已經在飛行中，按 V 鍵停止飛行
-        else
-            startFlying()  -- 如果沒有飛行，按 V 鍵啟動飛行
+-- **修正：確保 `V` 鍵綁定不會丟失**
+local function setupKeybinds()
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.V then
+            if flying then stopFlying() else startFlying() end
         end
-    end
+    end)
+end
+
+setupKeybinds()  -- **初次加載時設定鍵綁定**
+player.CharacterAdded:Connect(function()
+    setupCharacter(player.Character)
+    setupKeybinds()  -- **角色重生後重新設定鍵綁定**
 end)
 
--- 在手機上使用 UI 按鈕切換飛行
-flyButton.MouseButton1Click:Connect(function()
-    if flying then
-        stopFlying()  -- 停止飛行
-        flyButton.Text = "Start Flying"  -- 改變按鈕文字
-    else
-        startFlying()  -- 啟動飛行
-        flyButton.Text = "Stop Flying"  -- 改變按鈕文字
-    end
-end)
-
--- 飛行時根據攝像機視角控制角色的移動
+-- **飛行移動邏輯**
 RunService.RenderStepped:Connect(function()
-    if flying then
+    if flying and humanoidRootPart then
         local camera = Workspace.CurrentCamera
+        local camLook = camera.CFrame.LookVector
+        local camRight = camera.CFrame.RightVector
+        local moveDir = Vector3.zero
 
-        -- 獲取攝像機的前、右方向
-        local camLook = camera.CFrame.LookVector  -- 攝像機的前方
-        local camRight = camera.CFrame.RightVector  -- 攝像機的右方
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camLook end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camLook end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camRight end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camRight end
 
-        -- 獲取用戶輸入的移動方向（例如按下 W, A, S, D）
-        local moveDir = Vector3.new(0, 0, 0)
-
-        -- 處理前後、左右的輸入（WASD）
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            moveDir = moveDir + camLook
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            moveDir = moveDir - camLook
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            moveDir = moveDir - camRight
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            moveDir = moveDir + camRight
-        end
-
-        -- 給角色添加速度，根據方向調整
-        bodyVelocity.Velocity = moveDir * flySpeed  -- 根據輸入方向飛行
-        bodyGyro.CFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + camLook)  -- 讓角色朝向攝像機前方
+        bodyVelocity.Velocity = moveDir * flySpeed
+        bodyGyro.CFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + camLook)
     end
 end)
