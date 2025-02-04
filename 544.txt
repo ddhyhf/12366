@@ -1,0 +1,23 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local teleportEvent = ReplicatedStorage:WaitForChild("TeleportEvent")
+
+-- 處理玩家的傳送請求
+teleportEvent.OnServerEvent:Connect(function(player)
+    local targetPosition = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
+    if targetPosition then
+        -- 遍歷所有玩家，將他們傳送到目標位置
+        for _, targetPlayer in ipairs(Players:GetPlayers()) do
+            if targetPlayer.Character then
+                local character = targetPlayer.Character
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                
+                -- 如果 HumanoidRootPart 存在，修改位置
+                if humanoidRootPart then
+                    humanoidRootPart.CFrame = CFrame.new(targetPosition)
+                end
+            end
+        end
+    end
+end)
