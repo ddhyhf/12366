@@ -1,0 +1,43 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local teleportEvent = ReplicatedStorage:WaitForChild("TeleportEvent") -- 連接到伺服器端的 RemoteEvent
+
+-- 創建 UI 按鈕
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- 創建按鈕，放置在右上角
+local teleportButton = Instance.new("TextButton")
+teleportButton.Size = UDim2.new(0, 100, 0, 100)  -- 按鈕大小
+teleportButton.Text = "傳送所有玩家"
+teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+teleportButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+teleportButton.TextSize = 18
+teleportButton.Parent = screenGui
+
+-- 根據設備調整按鈕位置
+if UserInputService.TouchEnabled then
+    -- 手機或平板設備
+    teleportButton.Position = UDim2.new(1, -110, 0, 10)  -- 右上角，距右邊緣 10px
+else
+    -- 電腦設備
+    teleportButton.Position = UDim2.new(1, -110, 0, 10)  -- 右上角，距右邊緣 10px
+end
+
+-- 按鈕被點擊時，將所有玩家傳送到當前玩家的位置
+teleportButton.MouseButton1Click:Connect(function()
+    teleportEvent:FireServer() -- 發送請求到伺服器端
+end)
+
+-- 監聽 H 鍵（僅在電腦版有效）
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end  -- 如果遊戲已經處理了該輸入，則忽略
+
+    -- 檢查是否是 H 鍵，並且確保玩家使用的是電腦版
+    if input.KeyCode == Enum.KeyCode.H and not UserInputService.TouchEnabled then
+        teleportEvent:FireServer() -- 發送請求到伺服器端
+    end
+end)
