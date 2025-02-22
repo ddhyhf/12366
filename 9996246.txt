@@ -13,7 +13,7 @@ local function checkAndDestroyAntiMobileExploits()
 
     if antiMobileExploits and antiMobileExploits:FindFirstChild("AntiMobileExploits") then
         antiMobileExploits.AntiMobileExploits:Destroy()
-        game:GetService("StarterGui"):SetCore("SendNotification",{Title = "Success",Text = "Anti-cheat bypassed!" ,Duration = 3, Icon = "rbxthumb://type=Asset&id=9649923610&w=150&h=150"})
+        game:GetService("StarterGui"):SetCore("SendNotification",{Title = "Success",Text = "已經開啟自動農場如果沒有拳套就無法使用!" ,Duration = 3, Icon = "rbxthumb://type=Asset&id=9649923610&w=150&h=150"})
     else
         game:GetService("StarterGui"):SetCore("SendNotification",{Title = "Error",Text = "已經開啟自動農場如果沒有拳套就無法使用." ,Duration = 3, Icon = "rbxthumb://type=Asset&id=9649923610&w=150&h=150"})
     end
