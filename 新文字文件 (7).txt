@@ -1,0 +1,42 @@
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local noclipEnabled = false
+
+-- 监听按键，按 L 切换穿墙模式
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.L then
+        noclipEnabled = not noclipEnabled
+        if noclipEnabled then
+            print("穿牆模式開啟")
+        else
+            print("穿牆模式關閉")
+        end
+    end
+end)
+
+-- 讓角色能夠穿牆
+local function enableNoclip(character)
+    local function onStepped()
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not noclipEnabled
+            end
+        end
+    end
+    RunService.Stepped:Connect(onStepped)
+end
+
+-- 初始化角色
+if player.Character then
+    enableNoclip(player.Character)
+end
+
+-- 监听角色重生，重新綁定穿牆功能
+player.CharacterAdded:Connect(function(character)
+    character:WaitForChild("HumanoidRootPart") -- 确保角色完全加载
+    enableNoclip(character)
+end)
