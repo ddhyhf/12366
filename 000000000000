@@ -1,0 +1,200 @@
+local Players           = game:GetService("Players")
+local RunService        = game:GetService("RunService")
+local UserInputService  = game:GetService("UserInputService")
+local player            = Players.LocalPlayer
+
+-- 建立 ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "TPAuraGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- 主框架
+local frame = Instance.new("Frame")
+frame.Name               = "TPAuraFrame"
+frame.Size               = UDim2.new(0, 200, 0, 150)
+frame.Position           = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3   = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel    = 0
+frame.Active             = true        -- 必須打開才能偵測輸入
+frame.Parent             = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 6)
+corner.Parent       = frame
+
+-- 可拖曳功能
+local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging   = true
+        dragStart  = input.Position
+        startPos   = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- 關閉按鈕
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name               = "CloseBtn"
+closeBtn.Size               = UDim2.new(0, 20, 0, 20)
+closeBtn.Position           = UDim2.new(1, -25, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text               = "X"
+closeBtn.Font               = Enum.Font.GothamBold
+closeBtn.TextSize           = 14
+closeBtn.TextColor3         = Color3.new(1, 1, 1)
+closeBtn.Parent             = frame
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- 標題
+local title = Instance.new("TextLabel")
+title.Size               = UDim2.new(1, -30, 0, 30)
+title.Position           = UDim2.new(0, 5, 0, 0)
+title.BackgroundTransparency = 1
+title.Text               = "TP 光環設定"
+title.TextColor3         = Color3.new(1, 1, 1)
+title.Font               = Enum.Font.GothamSemibold
+title.TextSize           = 18
+title.TextXAlignment     = Enum.TextXAlignment.Left
+title.Parent             = frame
+
+-- 切換開關
+local toggle = Instance.new("TextButton")
+toggle.Name               = "ToggleBtn"
+toggle.Size               = UDim2.new(0, 80, 0, 30)
+toggle.Position           = UDim2.new(1, -90, 0, 5)
+toggle.BackgroundColor3   = Color3.fromRGB(70, 70, 70)
+toggle.Text               = "關閉"
+toggle.TextColor3         = Color3.new(1, 1, 1)
+toggle.Font               = Enum.Font.Gotham
+toggle.TextSize           = 14
+toggle.Parent             = frame
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 4)
+toggleCorner.Parent       = toggle
+
+-- 玩家選擇標籤
+local selectorLabel = Instance.new("TextLabel")
+selectorLabel.Size            = UDim2.new(1, -10, 0, 20)
+selectorLabel.Position        = UDim2.new(0, 5, 0, 40)
+selectorLabel.BackgroundTransparency = 1
+selectorLabel.Text            = "未選擇玩家"
+selectorLabel.TextColor3      = Color3.new(1, 1, 1)
+selectorLabel.Font            = Enum.Font.Gotham
+selectorLabel.TextSize        = 14
+selectorLabel.Parent          = frame
+
+-- 玩家列表捲動框
+local scroll = Instance.new("ScrollingFrame")
+scroll.Name                 = "PlayersList"
+scroll.Size                 = UDim2.new(1, -10, 0, 70)
+scroll.Position             = UDim2.new(0, 5, 0, 65)
+scroll.BackgroundColor3     = Color3.fromRGB(45, 45, 60)
+scroll.BorderSizePixel      = 0
+scroll.ScrollBarThickness   = 4
+scroll.Parent               = frame
+
+local listCorner = Instance.new("UICorner")
+listCorner.CornerRadius = UDim.new(0, 4)
+listCorner.Parent       = scroll
+
+-- 變數
+local selectedPlayer = nil
+local auraConnection = nil
+local isEnabled      = false
+
+-- 更新玩家列表
+local function updateList()
+    scroll:ClearAllChildren()
+    local y = 0
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player then
+            local btn = Instance.new("TextButton")
+            btn.Size               = UDim2.new(1, -4, 0, 20)
+            btn.Position           = UDim2.new(0, 2, 0, y)
+            btn.BackgroundColor3   = (selectedPlayer == plr) and Color3.fromRGB(0,200,0) or Color3.fromRGB(60,60,80)
+            btn.Text               = plr.Name
+            btn.TextColor3         = Color3.new(1,1,1)
+            btn.Font               = Enum.Font.Gotham
+            btn.TextSize           = 14
+            btn.Parent             = scroll
+
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 4)
+            btnCorner.Parent       = btn
+
+            btn.MouseButton1Click:Connect(function()
+                selectedPlayer = plr
+                selectorLabel.Text = "已選擇: "..plr.Name
+                updateList()
+            end)
+
+            y = y + 24
+        end
+    end
+    scroll.CanvasSize = UDim2.new(0, 0, 0, y)
+end
+
+Players.PlayerAdded:Connect(updateList)
+Players.PlayerRemoving:Connect(function(plr)
+    if selectedPlayer == plr then
+        selectedPlayer = nil
+        selectorLabel.Text = "未選擇玩家"
+    end
+    updateList()
+end)
+
+updateList()
+
+-- 切換功能
+toggle.MouseButton1Click:Connect(function()
+    isEnabled = not isEnabled
+    if isEnabled then
+        toggle.Text             = "開啟"
+        toggle.BackgroundColor3 = Color3.fromRGB(0,200,0)
+        if selectedPlayer then
+            auraConnection = RunService.Heartbeat:Connect(function()
+                local myChar  = player.Character
+                local tgtChar = selectedPlayer.Character
+                if myChar and tgtChar then
+                    local hrp    = myChar:FindFirstChild("HumanoidRootPart")
+                    local tgtHrp = tgtChar:FindFirstChild("HumanoidRootPart")
+                    if hrp and tgtHrp then
+                        hrp.CFrame = tgtHrp.CFrame
+                    end
+                end
+            end)
+        end
+    else
+        toggle.Text             = "關閉"
+        toggle.BackgroundColor3 = Color3.fromRGB(70,70,70)
+        if auraConnection then
+            auraConnection:Disconnect()
+            auraConnection = nil
+        end
+    end
+end)
